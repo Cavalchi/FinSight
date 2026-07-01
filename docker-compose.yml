@@ -1,0 +1,167 @@
+# =============================================================================
+# FinSight — docker-compose.yml
+# =============================================================================
+# Sobe dois serviços principais:
+#   1. postgres   → banco de dados relacional + extensão pgvector (vetores)
+#   2. airflow-*  → orquestrador de pipelines (webserver + scheduler + init)
+#
+# Como usar:
+#   1. Copie .env.example para .env e preencha as chaves de API
+#   2. Execute: docker compose up -d
+#   3. Acesse o Airflow em: http://localhost:8080 (user: airflow / pass: airflow)
+#   4. O PostgreSQL estará disponível em: localhost:5432
+# =============================================================================
+
+x-airflow-common: &airflow-common
+  # Imagem oficial do Airflow 2.9 (LTS estável)
+  image: apache/airflow:2.9.3
+  environment: &airflow-common-env
+    # Conexão com o banco de metadados do Airflow (mesmo Postgres do projeto)
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    # Executor local — simples para desenvolvimento; troque por CeleryExecutor em prod
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    # Autenticação da UI
+    AIRFLOW__WEBSERVER__SECRET_KEY: finsight-secret-key-mude-em-producao
+    # Desabilita exemplos para deixar a UI limpa
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    # Fuso horário do agendamento
+    AIRFLOW__CORE__DEFAULT_TIMEZONE: America/Sao_Paulo
+    # Pacotes Python do projeto instalados dentro do container Airflow automaticamente.
+    # O container Airflow tem seu próprio Python — não compartilha o .venv local.
+    # Apenas pacotes que o Airflow NÃO inclui por padrão.
+    # sqlalchemy, psycopg2-binary e python-dotenv já vêm com o Airflow —
+    # reinstalar com versão fixada causaria conflito e quebraria o scheduler.
+    _PIP_ADDITIONAL_REQUIREMENTS: >-
+      loguru==0.7.2
+      tenacity==8.4.1
+      yfinance>=0.2.54
+      pandas==2.2.2
+      requests==2.32.3
+      feedparser==6.0.11
+      finnhub-python==2.4.20
+      google-generativeai
+      dbt-postgres>=1.8.0
+    # Repasse das variáveis do projeto para dentro dos containers Airflow
+    # DATABASE_URL usa "postgres" (nome do serviço Docker) em vez de "localhost"
+    # Dentro do container, localhost = o próprio container, não o Postgres!
+    DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
+    FINSIGHT_DB_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
+    FINNHUB_API_KEY: ${FINNHUB_API_KEY}
+    GEMINI_API_KEY: ${GEMINI_API_KEY}
+    OPENAI_API_KEY: ${OPENAI_API_KEY}
+    ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+    LLM_PROVIDER: ${LLM_PROVIDER}
+    LLM_MODEL: ${LLM_MODEL}
+    STOCK_TICKERS: ${STOCK_TICKERS}
+  volumes:
+    # DAGs do projeto montadas dentro do container
+    - ./dags:/opt/airflow/dags
+    # Logs persistidos no host (útil para debugging)
+    - airflow-logs:/opt/airflow/logs
+    # Plugins customizados (vazio por ora)
+    - ./airflow-plugins:/opt/airflow/plugins
+    # Código do projeto disponível dentro do container
+    - .:/opt/airflow/finsight
+  depends_on:
+    postgres:
+      condition: service_healthy
+  networks:
+    - finsight-network
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL + pgvector
+  # Usamos a imagem pgvector/pgvector que já vem com a extensão instalada.
+  # Criamos dois bancos: um para os dados do projeto e um para metadados do Airflow.
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: finsight-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-finsight}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-finsight123}
+      POSTGRES_DB: ${POSTGRES_DB:-finsight}
+      # Script de inicialização cria o banco do Airflow automaticamente
+      POSTGRES_MULTIPLE_DATABASES: airflow
+    volumes:
+      # Dados do banco persistidos mesmo após docker compose down
+      - postgres-data:/var/lib/postgresql/data
+      # Scripts SQL que rodam na primeira vez que o container sobe
+      - ./infra/init-db:/docker-entrypoint-initdb.d
+    ports:
+      # Expõe na máquina host para conectar com DBeaver, pgAdmin, etc.
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-finsight}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - finsight-network
+
+  # ---------------------------------------------------------------------------
+  # Airflow — Init (roda uma vez, cria tabelas e usuário admin)
+  # ---------------------------------------------------------------------------
+  airflow-init:
+    <<: *airflow-common
+    container_name: finsight-airflow-init
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db migrate
+        airflow users create \
+          --username airflow \
+          --firstname FinSight \
+          --lastname Admin \
+          --role Admin \
+          --email admin@finsight.local \
+          --password airflow
+    restart: "no"
+
+  # ---------------------------------------------------------------------------
+  # Airflow — Scheduler (o cérebro que dispara as DAGs no horário certo)
+  # ---------------------------------------------------------------------------
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: finsight-airflow-scheduler
+    command: scheduler
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Airflow — Webserver (a interface visual em localhost:8080)
+  # ---------------------------------------------------------------------------
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: finsight-airflow-webserver
+    command: webserver
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+# =============================================================================
+# Volumes nomeados — dados não se perdem com docker compose down
+# =============================================================================
+volumes:
+  postgres-data:
+    driver: local
+  airflow-logs:
+    driver: local
+
+# =============================================================================
+# Rede interna — os containers se comunicam pelo nome do serviço (ex: "postgres")
+# =============================================================================
+networks:
+  finsight-network:
+    driver: bridge
