@@ -43,7 +43,7 @@ export default function NewsFeed({ news, ticker, t }: Props) {
         style={{ background: 'rgba(255,255,255,0.015)' }}>
         <span className="label">{t.news}</span>
         <span className="label text-[#2d4560]">·</span>
-        <span className="font-mono text-[10px] text-[#2d4560]">{sorted.length} items</span>
+        <span className="font-mono text-[10px] text-[#4a6282]">{sorted.length} items</span>
         {relevant.length > 0 && (
           <span className="badge badge-blue ml-1">{relevant.length} related to {ticker}</span>
         )}
@@ -61,12 +61,12 @@ export default function NewsFeed({ news, ticker, t }: Props) {
               <div className="flex items-center gap-1.5 mb-2">
                 <span className={clsx('badge', CAT_BADGE[cat] ?? 'badge-blue')}>{cat}</span>
                 {isRel && <span className="badge badge-green">match</span>}
-                <span className="font-mono text-[9px] text-[#2d4560] ml-auto">{timeAgo(item.published_at)}</span>
+                <span className="font-mono text-[9px] text-[#64748b] ml-auto">{timeAgo(item.published_at)}</span>
               </div>
               {/* Headline */}
-              <p className="text-[11px] text-[#6b85a8] leading-relaxed line-clamp-3 mb-2">{item.headline}</p>
+              <p className="text-[11px] text-[#94a3b8] leading-relaxed line-clamp-3 mb-2">{item.headline}</p>
               {/* Source */}
-              <div className="text-[10px] text-[#2d4560]">
+              <div className="text-[10px] text-[#64748b]">
                 <SourceDot source={item.source} />
                 {item.source ?? item.api_source}
               </div>

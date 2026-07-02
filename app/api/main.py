@@ -21,10 +21,12 @@ from typing import Any
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from sqlalchemy import text
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 from finsight.db import get_engine
+from ai.rag import answer as rag_answer
 
 app = FastAPI(title="FinSight API", version="1.0.0")
 
@@ -102,3 +104,62 @@ def get_news(limit: int = 30) -> list[dict[str, Any]]:
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+# =============================================================================
+# RAG Endpoint — AI Analyst (Phase 5)
+# =============================================================================
+
+class RagRequest(BaseModel):
+    question: str
+    ticker:   str | None = None
+
+
+class RagSourceOut(BaseModel):
+    headline:   str
+    source:     str | None
+    url:        str | None
+    date:       str | None
+    similarity: float
+
+
+class RagResponse(BaseModel):
+    response:        str
+    sources:         list[RagSourceOut]
+    chunks_used:     int
+    has_market_data: bool
+    error:           str | None = None
+
+
+@app.post("/api/rag", response_model=RagResponse)
+def ask_analyst(req: RagRequest) -> RagResponse:
+    """
+    AI Analyst endpoint — executes the full RAG pipeline.
+
+    Receives a natural language question (+ optional ticker filter)
+    and returns a Gemini-generated answer grounded on the database data.
+    """
+    if not req.question or not req.question.strip():
+        raise HTTPException(status_code=422, detail="Question cannot be empty.")
+
+    result = rag_answer(
+        question=req.question.strip(),
+        ticker=req.ticker or None,
+    )
+
+    return RagResponse(
+        response=result.response,
+        sources=[
+            RagSourceOut(
+                headline=s.headline,
+                source=s.source,
+                url=s.url,
+                date=s.date,
+                similarity=s.similarity,
+            )
+            for s in result.sources
+        ],
+        chunks_used=result.chunks_used,
+        has_market_data=result.has_market_data,
+        error=result.error,
+    )

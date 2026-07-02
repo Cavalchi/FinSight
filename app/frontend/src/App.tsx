@@ -62,43 +62,63 @@ export default function App() {
   const info = TICKER_INFO[selected] ?? { name: selected, flag: '📊', sector: '—' }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-base text-white relative">
+    <div className="flex flex-col h-screen overflow-hidden bg-base text-white relative">
       {/* Aurora animated background */}
       <div className="aurora" />
 
-      {/* Sidebar */}
-      <Sidebar
-        tickers={tickers}
-        selected={selected}
-        onSelect={setSelected}
-        lang={lang}
-        onLangChange={setLang}
-        t={t}
-      />
+      {/* ── TOP SECTION: Sidebar + Dashboard content (same height) ── */}
+      <div className="flex flex-1 min-h-0 relative z-10">
 
-      {/* Main content */}
-      <main className="flex-1 flex flex-col overflow-hidden relative z-10">
-        {/* Accent bar */}
-        <div className="accent-bar w-full flex-shrink-0" />
+        {/* Sidebar */}
+        <Sidebar
+          tickers={tickers}
+          selected={selected}
+          onSelect={setSelected}
+          lang={lang}
+          onLangChange={setLang}
+          t={t}
+        />
 
-        <TopBar info={info} ticker={selected} latest={latest} period={period} setPeriod={setPeriod} t={t} />
+        {/* Main scrollable content */}
+        <main className="flex-1 flex flex-col overflow-hidden">
+          {/* Accent bar */}
+          <div className="accent-bar w-full flex-shrink-0" />
 
-        <div className="flex-1 overflow-y-auto px-6 pb-8 space-y-6 pt-5">
-          {loading ? (
-            <LoadingSkeleton />
-          ) : !latest ? (
-            <EmptyState t={t} />
-          ) : (
-            <>
-              <KpiGrid latest={latest} t={t} />
-              <PriceChart data={filtered} t={t} />
-              <MetricsCharts data={filtered} t={t} />
-              <NewsFeed news={news} ticker={selected} t={t} />
-              <RagSection t={t} />
-            </>
-          )}
+          <TopBar info={info} ticker={selected} latest={latest} period={period} setPeriod={setPeriod} t={t} />
+
+          <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-5 pt-5">
+            {loading ? (
+              <LoadingSkeleton />
+            ) : !latest ? (
+              <EmptyState t={t} />
+            ) : (
+              <>
+                <KpiGrid latest={latest} t={t} />
+                <PriceChart data={filtered} t={t} />
+                <MetricsCharts data={filtered} t={t} />
+                <NewsFeed news={news} ticker={selected} t={t} />
+              </>
+            )}
+          </div>
+        </main>
+      </div>
+
+      {/* ── BOTTOM SECTION: AI Analyst — full width (sidebar + content) ── */}
+      {!loading && latest && (
+        <div
+          className="flex-shrink-0 relative z-10 border-t"
+          style={{ borderColor: 'rgba(255,255,255,0.05)', background: 'rgba(4,8,18,0.97)', backdropFilter: 'blur(24px)' }}
+        >
+          {/* Subtle gradient separator */}
+          <div className="absolute top-0 left-0 right-0 h-px"
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(139,92,246,0.4), rgba(59,130,246,0.4), transparent)' }}
+          />
+
+          <div className="px-8 py-5">
+            <RagSection ticker={selected} t={t} />
+          </div>
         </div>
-      </main>
+      )}
     </div>
   )
 }

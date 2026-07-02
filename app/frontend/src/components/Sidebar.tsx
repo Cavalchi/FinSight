@@ -13,7 +13,7 @@ const PIPELINE = [
   { label: 'Prices',   ok: true },
   { label: 'News',     ok: true },
   { label: 'dbt',      ok: true },
-  { label: 'RAG / AI', ok: false },
+  { label: 'RAG / AI', ok: true },
 ]
 
 interface Props {
