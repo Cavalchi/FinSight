@@ -10,7 +10,7 @@
 [![Apache Airflow](https://img.shields.io/badge/Airflow-2.9-017CEE?logo=apacheairflow)](https://airflow.apache.org)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)](https://docker.com)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.36-FF4B4B?logo=streamlit)](https://streamlit.io)
-[![Gemini](https://img.shields.io/badge/LLM-Google%20Gemini-8E75B2?logo=googlegemini)](https://ai.google.dev)
+[![Groq](https://img.shields.io/badge/LLM-Groq%20Llama%203.3-F55036?logo=groq)](https://console.groq.com)
 
 ---
 
@@ -21,8 +21,8 @@ An **end-to-end daily data pipeline** that:
 1. **Ingests** stock prices (Yahoo Finance) and market news (Finnhub / RSS) into PostgreSQL
 2. **Transforms** raw data into clean analytical metrics using **dbt** (returns, moving averages, volatility)
 3. **Orchestrates** the full pipeline with **Apache Airflow** — runs every weekday at 7:30 PM BRT
-4. **Serves** an interactive dashboard via **Streamlit** for visual exploration
-5. **Answers natural-language questions** via a **RAG pipeline** (embeddings + pgvector + LLM) grounded in the pipeline's own data
+4. **Serves** an interactive dashboard via **React + FastAPI** for visual exploration
+5. **Answers natural-language questions** via a **RAG pipeline** (embeddings + pgvector + **Groq Llama 3.3**) grounded in the pipeline's own data
 
 ---
 
@@ -64,8 +64,8 @@ Yahoo Finance (prices)   Finnhub / RSS (news)
 | Orchestration | **Apache Airflow** 2.9 | Visual DAGs, retries, monitoring |
 | Containers | **Docker** + Compose | Zero "works on my machine" issues |
 | Embeddings | sentence-transformers (local) | Free, no API calls for embedding |
-| Generation | Google Gemini API | One API call, no model training |
-| Dashboard | **Streamlit** | Python-native, free hosting |
+| Generation | **Groq API** — Llama 3.3 70B | Free tier, fast inference, no billing required |
+| Dashboard | **React** + **FastAPI** | Modern SPA with real-time data |
 
 ---
 
@@ -95,8 +95,12 @@ docker compose up -d
 #    Login: airflow / airflow
 #    Trigger the "financial_pipeline" DAG manually
 
-# 5. Open the dashboard at http://localhost:8501
-streamlit run app/streamlit_app.py
+# 5. Start the backend API
+uvicorn app.api.main:app --port 8000 --reload
+
+# 6. Start the React dashboard
+cd app/frontend && npm install && npm run dev
+# Open http://localhost:5173
 ```
 
 ### Default tickers monitored
@@ -137,8 +141,11 @@ finsight-pipeline/
 │   ├── vectorstore.py          # Cosine similarity search
 │   └── rag.py                  # Retrieval + LLM call
 │
-├── app/                        # Phase 4: dashboard
-│   └── streamlit_app.py
+├── app/                        # Phase 4 & 6: dashboard
+│   ├── api/
+│   │   └── main.py             # FastAPI backend (REST + RAG endpoint)
+│   └── frontend/               # React + Vite dashboard
+│       └── src/
 │
 ├── infra/
 │   └── init-db/                # SQL scripts auto-run on first Postgres start
@@ -157,9 +164,9 @@ finsight-pipeline/
 | 1 — Ingestion | Prices (yfinance) + News (Finnhub/RSS) | ✅ Done |
 | 2 — Transformation | dbt staging + daily_metrics mart | ✅ Done |
 | 3 — Orchestration | Airflow DAG wiring everything together | ✅ Done |
-| 4 — Dashboard | Streamlit with charts (portfolio milestone) | ✅ Done |
-| 5 — RAG | Embeddings + pgvector + LLM Q&A | ✅ Done |
-| 6 — Polish | Diagrams, GIFs, docs, Streamlit Cloud deploy | 🏗 In progress |
+| 4 — Dashboard | React + FastAPI dashboard with interactive charts | ✅ Done |
+| 5 — RAG | Embeddings + pgvector + Groq Llama 3.3 Q&A | ✅ Done |
+| 6 — Polish | Diagrams, GIFs, docs, deploy | 🏗 In progress |
 
 ---
 
