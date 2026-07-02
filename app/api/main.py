@@ -50,6 +50,45 @@ def get_tickers() -> list[str]:
         return [row[0] for row in result]
 
 
+# Simple in-memory cache so yfinance is only called once per ticker per session
+_ticker_name_cache: dict[str, dict] = {}
+
+@app.get("/api/ticker-meta")
+def get_ticker_meta() -> list[dict]:
+    """
+    Returns name + sector for each ticker in daily_metrics.
+    Fetches from yfinance on first call, cached in memory after that.
+    """
+    import yfinance as yf
+
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(
+            text("SELECT DISTINCT ticker FROM public_marts.daily_metrics ORDER BY ticker")
+        )
+        tickers = [row[0] for row in result]
+
+    out = []
+    for ticker in tickers:
+        if ticker not in _ticker_name_cache:
+            try:
+                info = yf.Ticker(ticker).info
+                _ticker_name_cache[ticker] = {
+                    "ticker": ticker,
+                    "name":   info.get("longName") or info.get("shortName") or ticker,
+                    "sector": info.get("sector") or "—",
+                }
+            except Exception:
+                _ticker_name_cache[ticker] = {
+                    "ticker": ticker,
+                    "name":   ticker,
+                    "sector": "—",
+                }
+        out.append(_ticker_name_cache[ticker])
+
+    return out
+
+
 @app.get("/api/metrics/{ticker}")
 def get_metrics(ticker: str) -> list[dict[str, Any]]:
     """Returns all daily_metrics rows for a ticker, ordered by date asc."""
