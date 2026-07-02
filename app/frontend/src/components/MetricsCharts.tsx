@@ -28,7 +28,7 @@ function ChartWrapper({ title, children }: { title: string; children: React.Reac
 
 export default function MetricsCharts({ data, t }: Props) {
   const chartData = data.map(d => ({
-    date: format(new Date(d.trade_date), 'MMM d'),
+    date: format(new Date(d.trade_date + 'T12:00:00'), 'dd/MM'),
     vol: d.volatility_30d_pct != null ? +d.volatility_30d_pct.toFixed(2) : null,
     ret: d.daily_return_simple != null ? +(d.daily_return_simple * 100).toFixed(2) : null,
   }))

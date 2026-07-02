@@ -11,10 +11,10 @@ interface Props {
 
 // Thinking steps shown during loading
 const THINKING_STEPS = [
-  { id: 'understand', icon: '🧠', label: 'Entendendo sua pergunta...',       duration: 600  },
-  { id: 'retrieve',  icon: '🗄️', label: 'Buscando notícias no pipeline...', duration: 1400 },
-  { id: 'market',    icon: '📊', label: 'Consultando dados de mercado...',   duration: 2400 },
-  { id: 'generate',  icon: '⚡', label: 'Gerando análise com Gemini...',    duration: 9999 },
+  { id: 'understand', icon: '🧠', label: 'Entendendo sua pergunta...', duration: 600 },
+  { id: 'retrieve', icon: '🗄️', label: 'Buscando notícias no pipeline...', duration: 1400 },
+  { id: 'market', icon: '📊', label: 'Consultando dados de mercado...', duration: 2400 },
+  { id: 'generate', icon: '⚡', label: 'Gerando análise com IA...', duration: 9999 },
 ]
 
 // Suggestions per ticker
@@ -62,16 +62,16 @@ const ONBOARDING_LINES = [
 ]
 
 export default function RagSection({ ticker, t }: Props) {
-  const [question, setQuestion]       = useState('')
-  const [loading, setLoading]         = useState(false)
-  const [result, setResult]           = useState<RagResult | null>(null)
-  const [error, setError]             = useState<string | null>(null)
+  const [question, setQuestion] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState<RagResult | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [showSources, setShowSources] = useState(false)
-  const [activeStep, setActiveStep]   = useState(-1)  // current thinking step
-  const [hasAsked, setHasAsked]       = useState(false) // onboarding gone after first question
-  const [onbLine, setOnbLine]         = useState(0)   // which onboarding line is visible
-  const inputRef   = useRef<HTMLTextAreaElement>(null)
-  const resultRef  = useRef<HTMLDivElement>(null)
+  const [activeStep, setActiveStep] = useState(-1)  // current thinking step
+  const [hasAsked, setHasAsked] = useState(false) // onboarding gone after first question
+  const [onbLine, setOnbLine] = useState(0)   // which onboarding line is visible
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+  const resultRef = useRef<HTMLDivElement>(null)
   const sectionRef = useRef<HTMLDivElement>(null)
   const stepTimers = useRef<ReturnType<typeof setTimeout>[]>([])
 
@@ -121,7 +121,7 @@ export default function RagSection({ ticker, t }: Props) {
     const finalQ = (q || question).trim()
     if (!finalQ || loading) return
 
-    setQuestion(finalQ)
+    setQuestion('')
     setLoading(true)
     setResult(null)
     setError(null)
@@ -173,46 +173,45 @@ export default function RagSection({ ticker, t }: Props) {
 
         {/* ── ONBOARDING (before first question) ── */}
         {!hasAsked && !loading && (
-          <div className="flex flex-col items-center justify-center flex-1 py-8 text-center">
-            {/* Icon */}
+          <div className="flex flex-col items-center justify-center flex-1 py-4 text-center">
+            {/* Custom analytics icon — NOT ✦ */}
             <div
-              className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mb-5 shadow-lg"
-              style={{ background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)', boxShadow: '0 0 40px rgba(139,92,246,0.35)' }}
+              className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 shadow-lg flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg, #1d4ed8, #6d28d9)', boxShadow: '0 0 32px rgba(29,78,216,0.3)' }}
             >
-              ✦
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+              </svg>
             </div>
 
-            {/* Animated cycling text */}
-            <div className="h-8 overflow-hidden mb-1">
+            {/* Animated cycling text — compact */}
+            <div className="relative h-7 overflow-hidden mb-2 w-full">
               {ONBOARDING_LINES.map((line, i) => (
                 <div
                   key={i}
-                  className="transition-all duration-700"
+                  className="absolute inset-0 flex items-center justify-center transition-all duration-700"
                   style={{
                     transform: `translateY(${(i - onbLine) * 100}%)`,
                     opacity: i === onbLine ? 1 : 0,
-                    position: i === 0 ? 'relative' : 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
                   }}
                 >
-                  <h3 className="text-lg font-semibold text-white">{line}</h3>
+                  <h3 className="text-base font-semibold text-white">{line}</h3>
                 </div>
               ))}
             </div>
 
-            <p className="text-xs text-[#4a6282] mt-2 mb-6">
-              Respostas fundamentadas nos dados do seu próprio pipeline — notícias + preços + dbt.
+            <p className="text-xs mb-5" style={{ color: 'var(--text-muted)' }}>
+              Respostas fundamentadas nos dados do seu próprio pipeline.
             </p>
 
-            {/* Suggestion chips as main CTA */}
+            {/* Suggestion chips */}
             <div className="flex flex-wrap gap-2 justify-center max-w-xl">
               {suggestions.map(s => (
                 <button
                   key={s}
                   onClick={() => handleSubmit(s)}
-                  className="text-xs px-4 py-2 rounded-xl border border-white/10 text-[#7b9bc0] hover:text-white hover:border-blue-500/40 hover:bg-blue-500/8 bg-white/[0.03] transition-all duration-200"
+                  className="text-xs px-4 py-2 rounded-xl border border-white/10 hover:text-white hover:border-blue-500/40 hover:bg-blue-500/8 bg-white/[0.03] transition-all duration-200"
+                  style={{ color: 'var(--text-secondary)' }}
                 >
                   {s}
                 </button>
@@ -231,20 +230,17 @@ export default function RagSection({ ticker, t }: Props) {
               ✦
             </div>
 
-            {/* Question echo */}
-            <p className="text-sm text-[#7b9bc0] italic max-w-md text-center">"{question}"</p>
-
             {/* Steps */}
             <div className="flex flex-col gap-3 mt-4 w-full max-w-xs">
               {THINKING_STEPS.map((step, i) => {
-                const isDone    = activeStep > i
+                const isDone = activeStep > i
                 const isCurrent = activeStep === i
                 return (
                   <div
                     key={step.id}
                     className={clsx(
                       'flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-all duration-500',
-                      isDone    && 'border-emerald-500/20 bg-emerald-500/5',
+                      isDone && 'border-emerald-500/20 bg-emerald-500/5',
                       isCurrent && 'border-blue-500/30 bg-blue-500/8',
                       !isDone && !isCurrent && 'border-white/5 bg-white/[0.02] opacity-40',
                     )}
@@ -252,7 +248,7 @@ export default function RagSection({ ticker, t }: Props) {
                     <span className="text-base">{step.icon}</span>
                     <span className={clsx(
                       'text-xs flex-1',
-                      isDone    ? 'text-emerald-400' : isCurrent ? 'text-white' : 'text-[#2d4560]'
+                      isDone ? 'text-emerald-400' : isCurrent ? 'text-white' : 'text-[#2d4560]'
                     )}>
                       {step.label}
                     </span>
@@ -289,7 +285,7 @@ export default function RagSection({ ticker, t }: Props) {
                 <div className="text-sm font-semibold text-white">FinSight AI Analyst</div>
                 <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Gemini · {result.chunks_used} chunks · {result.has_market_data ? '+ market data' : 'news only'}
+                  Groq · Llama 3.3 · {result.chunks_used} chunks · {result.has_market_data ? '+ market data' : 'news only'}
                 </div>
               </div>
               <button
@@ -325,7 +321,7 @@ export default function RagSection({ ticker, t }: Props) {
                           'flex-shrink-0 text-[9px] font-mono px-1.5 py-0.5 rounded mt-0.5',
                           s.similarity > 0.6 ? 'bg-emerald-500/10 text-emerald-400'
                             : s.similarity > 0.4 ? 'bg-blue-500/10 text-blue-400'
-                            : 'bg-white/5 text-[#4a6282]'
+                              : 'bg-white/5 text-[#4a6282]'
                         )}>
                           {(s.similarity * 100).toFixed(0)}%
                         </div>

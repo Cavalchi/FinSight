@@ -2,9 +2,17 @@ import type { DayMetric, NewsItem } from './types'
 
 const BASE = '/api'
 
+export interface TickerMeta { ticker: string; name: string; sector: string }
+
 export async function fetchTickers(): Promise<string[]> {
   const res = await fetch(`${BASE}/tickers`)
   if (!res.ok) throw new Error('Failed to fetch tickers')
+  return res.json()
+}
+
+export async function fetchTickerMeta(): Promise<TickerMeta[]> {
+  const res = await fetch(`${BASE}/ticker-meta`)
+  if (!res.ok) return []
   return res.json()
 }
 
