@@ -2,14 +2,16 @@
 
 > From raw market ticks to an AI analyst that answers grounded questions about your data.
 
-<!-- TODO: adicionar GIF do app funcionando aqui na Fase 6 -->
+![FinSight demo](docs/demo.gif)
 
 [![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)](https://python.org)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+pgvector-336791?logo=postgresql)](https://postgresql.org)
 [![dbt](https://img.shields.io/badge/dbt-1.8-orange?logo=dbt)](https://getdbt.com)
 [![Apache Airflow](https://img.shields.io/badge/Airflow-2.9-017CEE?logo=apacheairflow)](https://airflow.apache.org)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)](https://docker.com)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.36-FF4B4B?logo=streamlit)](https://streamlit.io)
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev)
+[![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite)](https://vitejs.dev)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688?logo=fastapi)](https://fastapi.tiangolo.com)
 [![Groq](https://img.shields.io/badge/LLM-Groq%20Llama%203.3-F55036?logo=groq)](https://console.groq.com)
 
 ---
@@ -28,29 +30,23 @@ An **end-to-end daily data pipeline** that:
 
 ## Architecture
 
+```mermaid
+flowchart TD
+    subgraph ORCH [Orchestrated by Apache Airflow · Containerized with Docker]
+        direction TB
+        A[Yahoo Finance<br/>prices] --> C[Python Ingestion]
+        B[Finnhub / RSS<br/>news] --> C
+        C --> D[(PostgreSQL<br/>raw_prices, raw_news)]
+        D --> E[dbt<br/>staging → marts]
+        E --> F[daily_metrics]
+        F --> G[FastAPI backend]
+        G --> H[React Dashboard]
+        F --> I[sentence-transformers<br/>embeddings]
+        I --> J[(pgvector<br/>semantic search)]
+        J --> K[Groq API<br/>Llama 3.3 70B]
+        K --> L[RAG Analyst<br/>natural language Q&A]
+    end
 ```
-Yahoo Finance (prices)   Finnhub / RSS (news)
-        │                        │
-        └──── Python Ingestion ──┘
-                     │
-             PostgreSQL (raw_prices, raw_news)
-                     │
-               dbt (staging → marts)
-                     │
-              daily_metrics ────────────→ Streamlit Dashboard
-                     │
-         sentence-transformers (embeddings)
-                     │
-              pgvector (semantic search)
-                     │
-             LLM API (Claude / GPT)
-                     │
-           RAG Analyst (natural language Q&A)
-
-    [ All orchestrated by Apache Airflow, containerized with Docker ]
-```
-
-> 📐 See the full architecture diagram at [`docs/architecture.png`](docs/architecture.png)
 
 ---
 
@@ -65,7 +61,8 @@ Yahoo Finance (prices)   Finnhub / RSS (news)
 | Containers | **Docker** + Compose | Zero "works on my machine" issues |
 | Embeddings | sentence-transformers (local) | Free, no API calls for embedding |
 | Generation | **Groq API** — Llama 3.3 70B | Free tier, fast inference, no billing required |
-| Dashboard | **React** + **FastAPI** | Modern SPA with real-time data |
+| Frontend | **React 18** + **Vite 5** | Modern SPA with hot reload |
+| Backend | **FastAPI** | Async REST API + RAG endpoint |
 
 ---
 
@@ -144,14 +141,23 @@ finsight-pipeline/
 ├── app/                        # Phase 4 & 6: dashboard
 │   ├── api/
 │   │   └── main.py             # FastAPI backend (REST + RAG endpoint)
-│   └── frontend/               # React + Vite dashboard
+│   └── frontend/               # React 18 + Vite 5 dashboard
 │       └── src/
+│           ├── components/     # KpiGrid, PriceChart, MetricsCharts, NewsFeed, RagSection, Sidebar, TopBar
+│           ├── App.tsx         # Root component + AI overlay
+│           ├── api.ts          # Fetch helpers (tickers, metrics, news, meta)
+│           ├── types.ts        # Shared TypeScript interfaces
+│           ├── i18n.ts         # EN / PT / ES translations
+│           └── index.css       # Global styles + design tokens
 │
 ├── infra/
 │   └── init-db/                # SQL scripts auto-run on first Postgres start
 │
-└── docs/
-    └── architecture.png
+├── docs/
+│   └── demo.gif                # Dashboard demo (Phase 6)
+│
+└── scripts/
+    └── verify_setup.py         # Smoke-test for DB connection and table presence
 ```
 
 ---
@@ -166,13 +172,7 @@ finsight-pipeline/
 | 3 — Orchestration | Airflow DAG wiring everything together | ✅ Done |
 | 4 — Dashboard | React + FastAPI dashboard with interactive charts | ✅ Done |
 | 5 — RAG | Embeddings + pgvector + Groq Llama 3.3 Q&A | ✅ Done |
-| 6 — Polish | Diagrams, GIFs, docs, deploy | 🏗 In progress |
-
----
-
-## Live demo
-
-🚧 Coming in Phase 6 — [Streamlit Community Cloud link here]
+| 6 — Polish | Diagrams, GIFs, docs | ✅ Done |
 
 ---
 
