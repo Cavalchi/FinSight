@@ -185,7 +185,7 @@ finsight-pipeline/
 → SQL is reviewable, testable, and versionable. The `schema.yml` tests catch data quality issues automatically on every run.
 
 **Why the RAG is implemented from scratch (not LangChain)?**
-→ The pipeline is ~50 lines: chunk → embed → similarity search → prompt → LLM. Understanding every line makes you able to explain and debug it in any interview.
+→ A focused, framework-free pipeline: chunk → embed → similarity search → prompt → LLM. Every step is explicit and debuggable — no magic, no black boxes.
 
 **Why Airflow instead of a cron job?**
 → Visibility (graph view of each run), automatic retries, task dependencies, and a track record of production reliability. A cron job that fails silently is invisible; a failed Airflow task is in your face.
@@ -223,4 +223,4 @@ python -m finsight.db
 
 ---
 
-*Built as a portfolio project to demonstrate end-to-end data engineering skills — from raw market data to a production-ready AI analyst.*
+*Built as a portfolio project to demonstrate end-to-end data engineering skills — from raw market data to an AI analyst grounded in real data.*
